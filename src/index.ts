@@ -21,17 +21,20 @@ const UserSchema = z.object({
     }),
 });
 
-const PostService = z.object({
+const PostShema = z.object({
     title: z.string({
         message: "Введите заголовок",
     }),
     description: z.string({
         message: "Введите описание",
     }),
+    userId: z.string({
+        message: 'Введите юзер id'
+    }).min(1, 'Хоть 1 символ')
 });
 
 type User = z.infer<typeof UserSchema> & { id: string };
-type Service = z.infer<typeof PostService> & { id: string } & { data: Date };
+type Service = z.infer<typeof PostShema> & { id: string } & { data: Date };
 
 const userService = new Elysia({ prefix: "/users" })
     .get("/", async () => {
@@ -94,7 +97,7 @@ const userService = new Elysia({ prefix: "/users" })
             .where(eq(users.id, params.id))
     });
 
-const postService = new Elysia({ prefix: "/service" })
+    const postService = new Elysia({ prefix: "/service" })
     .get("/", async () => {
         return await db.query.posts.findMany();
     })
@@ -111,18 +114,18 @@ const postService = new Elysia({ prefix: "/service" })
         return post;
     })
 
-    // .post(
-    //     "/",
-    //     async ({ body }) => {
-    //     await db.insert(posts).values({
-    //         ...body,
-    //         id: Bun.randomUUIDv7(),
-    //         createdAt: new Date()
-    //     })
-    // },
-    // {
-    //     body: PostService
-    // })
+    .post(
+        "/",
+        async ({ body }) => {
+        await db.insert(posts).values({
+            ...body,
+            id: Bun.randomUUIDv7(),
+            createdAt: new Date()
+        })
+    },
+    {
+        body: PostShema
+    })
         
     .put(
         "/:id",
@@ -132,19 +135,37 @@ const postService = new Elysia({ prefix: "/service" })
                 .set(body)
                 .where(eq(posts.id, params.id));
         },
-        { body: PostService }
+        { body: PostShema }
     )
 
     .delete("/:id", async ({ params }) => {
         await db.delete(posts)
         .where(eq(posts.id, params.id))
-    });
+    })
+
+    .get("/comment/:id", async ({params}) => {
+        const post = db.query.posts.findFirst({
+            where: eq(posts.id, params.id),
+            with:{
+                author:{
+                    columns:{
+                        id: true,
+                        name: true
+                    }
+                }
+            },
+            
+        }) 
+        return post  
+        
+    })
     
 
 
 
 new Elysia()
     .use(userService)
+    .use(postService)
     .get("/", () => {
         return "Денис меганайт";
     })
