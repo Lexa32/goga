@@ -4,6 +4,7 @@ import z, { date, email } from "zod/v4";
 import { and, eq, gt, gte, lt, lte, not, or } from "drizzle-orm";
 import { db } from "./db";
 import { users, posts } from "./schema";
+import { tr } from "zod/locales";
 
 const UserSchema = z.object({
     name: z
@@ -153,6 +154,19 @@ const userService = new Elysia({ prefix: "/users" })
                         name: true
                     }
                 }
+            },
+            
+        }) 
+        return post  
+        
+    })
+
+    .get("/comment/:id", async ({params}) => {
+        const post = db.query.posts.findFirst({
+            where: eq(posts.id, params.id),
+            with:{
+                author: true
+                
             },
             
         }) 
